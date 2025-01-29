@@ -1,15 +1,16 @@
-import { Length } from 'class-validator';
-import { User } from 'src/users/entities/user.entity';
-import { Wish } from 'src/wishes/entities/wish.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
-  ManyToMany,
-  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  ManyToOne,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
+import { IsUrl, IsOptional, Length } from 'class-validator';
+import { Wish } from '../../wishes/entities/wish.entity';
+import { User } from '../../users/entities/user.entity';
 
 @Entity()
 export class Wishlist {
@@ -20,17 +21,20 @@ export class Wishlist {
   @Length(1, 250)
   name: string;
 
-  @Column()
-  @Length(0, 1500)
+  @Column({ default: 'Нет описания' })
+  @Length(1, 1500)
+  @IsOptional()
   description: string;
 
   @Column()
+  @IsUrl()
   image: string;
 
-  @ManyToMany(() => Wish, (wish) => wish.name)
+  @ManyToMany(() => Wish, (wish) => wish.wishlist)
+  @JoinTable()
   items: Wish[];
 
-  @ManyToOne(() => User, (user) => user.username)
+  @ManyToOne(() => User, (user) => user.wishlists)
   owner: User;
 
   @CreateDateColumn()

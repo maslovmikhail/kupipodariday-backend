@@ -1,3 +1,4 @@
+import { IsBoolean } from 'class-validator';
 import { User } from 'src/users/entities/user.entity';
 import { Wish } from 'src/wishes/entities/wish.entity';
 import {
@@ -14,18 +15,19 @@ export class Offer {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User, (user) => user.username)
+  @ManyToOne(() => User, (user) => user.offers)
   user: User;
 
-  @ManyToOne(() => Wish, (wish) => wish.name)
+  @ManyToOne(() => Wish, (wish) => wish.offers)
   item: Wish;
 
-  @Column({ precision: 2 })
+  @Column('decimal')
   amount: number;
 
   @Column({
     default: false,
   })
+  @IsBoolean()
   hidden: boolean;
 
   @CreateDateColumn()

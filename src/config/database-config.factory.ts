@@ -11,12 +11,13 @@ export class DatabaseConfigFactory implements TypeOrmOptionsFactory {
       type: 'postgres',
       host: this.configService.get<string>('database.host'),
       port: this.configService.get<number>('database.port'),
-      username: this.configService.get<string>('database.user'),
+      username: this.configService.get<string>('database.username'),
       password: this.configService.get<string>('database.password'),
       database: this.configService.get<string>('database.name'),
+      schema: this.configService.get<string>('database.schema'),
       entities: [join(__dirname, '../**/**/*.entity{.ts,.js}')],
       synchronize: true,
-      logging: true,
+      // logging: true,
     };
   }
 }

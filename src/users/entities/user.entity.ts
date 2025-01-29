@@ -1,4 +1,12 @@
-import { IsEmail, IsNotEmpty, IsUrl, Length, MinLength } from 'class-validator';
+import { Exclude } from 'class-transformer';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsUrl,
+  Length,
+  MinLength,
+} from 'class-validator';
 import { Offer } from 'src/offers/entities/offer.entity';
 import { Wish } from 'src/wishes/entities/wish.entity';
 import { Wishlist } from 'src/wishlists/entities/wishlist.entity';
@@ -23,10 +31,12 @@ export class User {
 
   @Column({ default: 'Пока ничего не рассказал о себе' })
   @Length(2, 200)
+  @IsOptional()
   about: string;
 
   @Column({ default: 'https://i.pravatar.cc/300' })
   @IsUrl()
+  @IsOptional()
   avatar: string;
 
   @Column({ unique: true })
@@ -34,15 +44,16 @@ export class User {
   @IsNotEmpty()
   email: string;
 
-  @Column()
+  @Exclude()
+  @Column({ select: false })
   @MinLength(6)
   @IsNotEmpty()
   password: string;
 
-  @OneToMany(() => Wish, (wish) => wish.name)
+  @OneToMany(() => Wish, (wish) => wish.owner)
   wishes: Wish[];
 
-  @OneToMany(() => Offer, (offer) => offer.item)
+  @OneToMany(() => Offer, (offer) => offer.user)
   offers: Offer[];
 
   @OneToMany(() => Wishlist, (wishlist) => wishlist.owner)

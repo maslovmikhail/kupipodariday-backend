@@ -1,26 +1,68 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { CreateOfferDto } from './dto/create-offer.dto';
-import { UpdateOfferDto } from './dto/update-offer.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Offer } from './entities/offer.entity';
+import { Repository } from 'typeorm';
+import { User } from 'src/users/entities/user.entity';
+import { Wish } from 'src/wishes/entities/wish.entity';
 
 @Injectable()
 export class OffersService {
-  create(createOfferDto: CreateOfferDto) {
-    return 'This action adds a new offer';
+  constructor(
+    @InjectRepository(Offer)
+    private offersRepository: Repository<Offer>,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
+    @InjectRepository(Wish)
+    private wishsRepository: Repository<Wish>,
+  ) {}
+
+  async create(createOfferDto: CreateOfferDto, userId: number) {
+    const { amount, itemId } = createOfferDto;
+
+    const owner = await this.usersRepository.findOneBy({ id: userId });
+    const wish = await this.wishsRepository.findOne({
+      where: { id: itemId },
+      relations: ['owner', 'offers'],
+    });
+
+    if (userId === wish.owner.id) {
+      throw new ForbiddenException(
+        'Нельзя вносить деньги на собственные подарки',
+      );
+    }
+
+    const raised = Number(wish.raised) + Number(amount);
+    if (raised > wish.price) {
+      throw new BadRequestException(
+        'Сумма собранных средств не может превышать стоимость подарка',
+      );
+    }
+    wish.raised += amount;
+
+    await this.wishsRepository.update(itemId, { raised: raised });
+
+    return this.offersRepository.save({
+      ...createOfferDto,
+      owner: owner,
+      item: wish,
+    });
   }
 
-  findAll() {
-    return `This action returns all offers`;
+  async findAll() {
+    return await this.offersRepository.find({
+      relations: {
+        user: true,
+        item: true,
+      },
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} offer`;
-  }
-
-  update(id: number, updateOfferDto: UpdateOfferDto) {
-    return `This action updates a #${id} offer`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} offer`;
+  async findOne(id: number) {
+    return await this.offersRepository.findOneBy({ id });
   }
 }
