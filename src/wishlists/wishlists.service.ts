@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateWishlistDto } from './dto/create-wishlist.dto';
 import { UpdateWishlistDto } from './dto/update-wishlist.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -71,9 +75,14 @@ export class WishlistsService {
       },
       where: {
         id: id,
-        owner: { id: userId },
       },
     });
+
+    if (wishList.owner.id !== userId) {
+      throw new BadRequestException(
+        'Вишлист может редактировать только владелец',
+      );
+    }
 
     return this.wishlistRepository.update(wishList, {
       ...updateWishlistDto,
@@ -87,11 +96,13 @@ export class WishlistsService {
       },
       where: {
         id: id,
-        owner: {
-          id: userId,
-        },
       },
     });
+
+    if (wishList.owner.id !== userId) {
+      throw new BadRequestException('Вишлист может удалить только владелец');
+    }
+
     return await this.wishlistRepository.remove(wishList);
   }
 }

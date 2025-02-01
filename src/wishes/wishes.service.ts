@@ -14,25 +14,26 @@ import { User } from 'src/users/entities/user.entity';
 @Injectable()
 export class WishesService {
   constructor(
-    @InjectRepository(Wish) private wishRepository: Repository<Wish>,
+    @InjectRepository(Wish) private wishesRepository: Repository<Wish>,
     private usersService: UsersService,
-    @InjectRepository(User)
-    private usersRepository: Repository<User>,
   ) {}
 
   async create(createWishDto: CreateWishDto, userId: number) {
     const owner = await this.usersService.findById(userId);
-    const wish = await this.wishRepository.create({ ...createWishDto, owner });
+    const wish = await this.wishesRepository.create({
+      ...createWishDto,
+      owner,
+    });
 
-    return await this.wishRepository.save(wish);
+    return await this.wishesRepository.save(wish);
   }
 
   async findOneWish(query: FindOneOptions<Wish>) {
-    return await this.wishRepository.findOneOrFail(query);
+    return await this.wishesRepository.findOneOrFail(query);
   }
 
   async findOne(ownerId: number) {
-    return await this.wishRepository.find({
+    return await this.wishesRepository.find({
       where: { id: ownerId },
       relations: { owner: true, offers: true },
     });
@@ -40,7 +41,7 @@ export class WishesService {
 
   async updateOne(id: number, updateWishDto: UpdateWishDto, userId: number) {
     const { price } = updateWishDto;
-    const wish = await this.wishRepository.findOne({
+    const wish = await this.wishesRepository.findOne({
       where: { id: id },
       relations: ['owner'],
     });
@@ -52,11 +53,11 @@ export class WishesService {
         'Цену подарка нельзя редактировать, поскольку сбор средств уже идет',
       );
     }
-    return this.wishRepository.save({ ...wish, ...updateWishDto });
+    return this.wishesRepository.save({ ...wish, ...updateWishDto });
   }
 
-  async removeOne(wishId: number, userId: number) {
-    const wish = await this.wishRepository.findOne({
+  async removeOne(userId: number, wishId: number) {
+    const wish = await this.wishesRepository.findOne({
       relations: {
         owner: true,
       },
@@ -67,11 +68,11 @@ export class WishesService {
     if (wish.owner.id !== userId) {
       throw new ForbiddenException('Чужой подарок нельзя удалить');
     }
-    return this.wishRepository.remove(wish);
+    return this.wishesRepository.remove(wish);
   }
 
   async findTop() {
-    return await this.wishRepository.find({
+    return await this.wishesRepository.find({
       relations: { owner: true, offers: true },
       order: {
         copied: 'DESC',
@@ -81,7 +82,7 @@ export class WishesService {
   }
 
   async findLast() {
-    return await this.wishRepository.find({
+    return await this.wishesRepository.find({
       relations: { owner: true },
       order: {
         createdAt: 'DESC',
@@ -91,27 +92,32 @@ export class WishesService {
   }
 
   async copy(wishId: number, userId: number) {
-    const wish = await this.wishRepository.findOneBy({ id: wishId });
-    const user = await this.usersRepository.findOne({
-      relations: {
-        wishes: true,
-      },
-      where: {
-        id: userId,
-      },
+    const wish = await this.wishesRepository.findOne({
+      where: { id: wishId },
+      relations: ['owner'],
     });
 
-    wish.copied = (wish.copied || 0) + 1;
-    await this.wishRepository.save(wish);
-
-    const isUserHasWish = user.wishes.some(
-      (userWish) => userWish.id === wish.id,
-    );
+    const isUserHasWish = await this.wishesRepository.findOneBy({
+      name: wish.name,
+      owner: { id: userId },
+    });
     if (isUserHasWish) {
-      throw new Error('Подарок уже в коллекции');
+      throw new ConflictException('Подарок уже в коллекции');
+    }
+    if (wish.owner.id === userId) {
+      throw new ConflictException('Нельзя копировать свой собственный подарок');
     }
 
-    user.wishes.push(wish);
-    return await this.usersRepository.save(user);
+    wish.copied += 1;
+    await this.wishesRepository.save(wish);
+    const copiedWish = this.wishesRepository.create({
+      ...wish,
+      id: undefined,
+      owner: { id: userId },
+      copied: 0,
+      raised: 0,
+    });
+
+    return await this.wishesRepository.save(copiedWish);
   }
 }

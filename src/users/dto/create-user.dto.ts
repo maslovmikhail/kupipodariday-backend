@@ -12,7 +12,7 @@ export class CreateUserDto {
   @IsString()
   username: string;
 
-  @Length(2, 200)
+  @Length(0, 200)
   @IsOptional()
   about: string;
 

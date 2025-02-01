@@ -58,7 +58,7 @@ export class WishesController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   remove(@AuthUser() user: User, @Param('id') id: number) {
-    return this.wishesService.removeOne(user.id, +id);
+    return this.wishesService.removeOne(user.id, id);
   }
 
   @Post(':id/copy')

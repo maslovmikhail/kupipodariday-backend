@@ -49,6 +49,6 @@ export class UsersController {
 
   @Post('find')
   findUser(@Body('query') query: string) {
-    return this.usersService.findUser({ where: { username: query } });
+    return this.usersService.findUser(query);
   }
 }
