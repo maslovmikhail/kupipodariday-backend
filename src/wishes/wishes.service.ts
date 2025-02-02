@@ -97,17 +97,6 @@ export class WishesService {
       relations: ['owner'],
     });
 
-    const isUserHasWish = await this.wishesRepository.findOneBy({
-      name: wish.name,
-      owner: { id: userId },
-    });
-    if (isUserHasWish) {
-      throw new ConflictException('Подарок уже в коллекции');
-    }
-    if (wish.owner.id === userId) {
-      throw new ConflictException('Нельзя копировать свой собственный подарок');
-    }
-
     wish.copied += 1;
     await this.wishesRepository.save(wish);
     const copiedWish = this.wishesRepository.create({
